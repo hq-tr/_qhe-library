@@ -1,10 +1,7 @@
-import sys
-sys.path.append("/home/trung/_qhe-library/")
 import sphere_wavefunctions as sphwf 
 import matplotlib.pyplot as plt 
 import numpy as np
 from matplotlib import cm
-#from celluloid import Camera
 
 def plot_sphere_density(state, No, title=None, fname=None, invert=False, bosonic=False, ref=None):
 	basis = state.get_basis_index(No)
