@@ -193,7 +193,7 @@ def Lplus(basis_list,coef_list, Np, debug=False, partial=0,normalize=True):
     norm = np.sqrt(sum(output[x]*np.conj(output[x]) for x in output))
     if debug: print(f"Norm = {norm}")
     out_vec = np.array([x for x in output])
-    if norm>1e-13:
+    if norm>1e-20:
         if normalize:
             out_coef = np.array([output[x]/norm for x in output])
         else:
@@ -203,9 +203,8 @@ def Lplus(basis_list,coef_list, Np, debug=False, partial=0,normalize=True):
     return out_vec, out_coef
 
 def Lplus_boson(basis_list,coef_list, debug=False, partial=0,normalize=True):
-    Np = len(basis_list[0].split())
+    Np = len(basis_list[0])
     S = (Np-1)/2
-    if debug: print(f"S = {S}")
     assert len(basis_list)==len(coef_list), "Basis and coefficient sizes must be equal"
     dim = len(basis_list)
     output = {}
@@ -224,7 +223,7 @@ def Lplus_boson(basis_list,coef_list, debug=False, partial=0,normalize=True):
             new.sort()
             if debug: print(new,end="\t")
             if not Np in new:
-                new_bin = misc.index_to_binary_boson(new,Np, inc_space=True)
+                new_bin = misc.index_to_binary_boson(new,Np)
                 m = basis_index[j]-S
                 if debug: print(m,end="\t")
                 multi_new = new.count(basis_index[j]+1)
@@ -326,7 +325,7 @@ def LplusLminus(basis_list_index,Np,debug=False):
 def LminusLplus_boson(basis_list_index,Np,debug=False):
     dim = len(basis_list_index)
     LL = dok_matrix((dim,dim), dtype=float)
-    basis_list_binary=[misc.index_to_binary_boson(vec,Np, inc_space=True) for vec in basis_list_index]
+    basis_list_binary=[misc.index_to_binary_boson(vec,Np) for vec in basis_list_index]
     for (i,j) in combinations(range(dim),2):
         if sum(take_difference(basis_list_index[i],basis_list_index[j]))==2:
             dummy = Lplus_boson([basis_list_binary[i]],[1.0],debug=debug,normalize=False)

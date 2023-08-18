@@ -7,7 +7,7 @@ Created on Fri Feb 14 12:25:30 2020
 This library contain functions that are useful for numerics on FQHE.
 See <misc_readme.txt> for a table of content.
 
-LAST UPDATED 2021-07-01
+LAST UPDATED 2022-12-12
 """
 
 from scipy import *
@@ -23,6 +23,17 @@ import operator as op
 from functools import reduce
 from itertools import zip_longest, chain
 from multiprocessing import Pool
+
+def flip(x):
+	if x=="1":
+		return "0"
+	elif x=="0":
+		return "1"
+	else:
+		return ""
+
+def PH_conj(binary_basis):
+	return "".join(map(flip, binary_basis))
 
 def display_vector(basis, coef):
 	assert len(basis)==len(coef), "Basis and coefficients must be of the same dimension"
@@ -60,15 +71,15 @@ def index_to_binary_boson(basis_index,Np,inc_space = False):
 	else:
 		return "".join(list(map(str,[basis_index.count(x) for x in range(Np)])))
 
-def binary_to_index_boson(basis, invert = False):
+def binary_to_index_boson(basis, invert = False, n = 0):
 	if invert:
 		basis_2 = basis.split()[::-1]
 	else:
 		basis_2 = basis.split()
-	return list(chain.from_iterable([i]*int(basis_2[i]) for i in range(len(basis_2))))
+	return list(chain.from_iterable([i-n]*int(basis_2[i]) for i in range(len(basis_2))))
 
-def binary_to_index(basis):
-	return [x for x in range(len(basis)) if basis[x]=="1" ]
+def binary_to_index(basis, n=0):
+	return [x-n for x in range(len(basis)) if basis[x]=="1" ]
 
 def index_to_decimal_boson(basis, invert=False):
 	basis_fermion = basis_b2f(basis)
@@ -96,7 +107,7 @@ def basis_f2b(basis_index):
 	return [basis_index[i]-i for i in range(len(basis_index))]
 
 def decimal_to_binary_boson(basisvec, Np, invert = False):
-	return
+	return index_to_binary_boson(basis_f2b(dec_to_index(basisvec)), Np, inc_space=True)
 
 def decimal_to_binary(basisvec, Np, invert = False):
 	vec_index = dec_to_index(basisvec)
@@ -113,7 +124,7 @@ def binary_to_decimal(basisvec, invert=False):
 
 
 def index_to_decimal(basisvec):
-	return sum(2**(array(basisvec)))
+	return np.sum(2**(np.array(basisvec)))
 
 def dec_to_occupation(num,Np,get_array=True):
 	if get_array:
@@ -125,7 +136,7 @@ def dec_to_occupation(num,Np,get_array=True):
 
 def occupation_str_to_list(occupation, get_array=True):
 	if get_array:
-		return array(list(map(int,occupation)))
+		return np.array(list(map(int,occupation)))
 	else:
 		return list(map(int,occupation))
 	
@@ -139,16 +150,16 @@ def dec_to_index(num):
 #     vec = [None]*iteration
 #     for n in range(iteration):
 #         print(n,end = '.\r')
-#         v0 = rand(N); v0 = v0/sqrt(sum(v0**2));
+#         v0 = rand(N); v0 = v0/np.sqrt(np.sum(v0**2));
 #         for i in range(1000):
 #             v0 = M*v0
-#             v0 = v0/sqrt(sum(v0**2))
+#             v0 = v0/np.sqrt(np.sum(v0**2))
 #         vec[n] = v0
 #     
 #     M = empty([iteration, iteration])
 #     for i in range(iteration):
 #         for j in range(iteration):
-#             M[i,j] = dot(vec[i],vec[j])
+#             M[i,j] = np.dot(vec[i],vec[j])
 #     
 #     E, V = eigh(M)
 #     zerovec = V[abs(E)>0.000001]
@@ -156,7 +167,7 @@ def dec_to_index(num):
 # #     M = zeros(iteration)
 # #     for i in range(iteration):
 # #         for j in range(iteration):
-# #             M[i,j] = dot(vec[i],vec[j])
+# #             M[i,j] = np.dot(vec[i],vec[j])
 # #     
 # #     EM, VM = []
 # # =============================================================================
@@ -175,7 +186,7 @@ def dec_to_index(num):
 #     M = empty([dim,dim])
 #     for i in range(dim):
 #         for j in range(dim):
-#             M[i,j] = dot(vec[i],vec[j])
+#             M[i,j] = np.dot(vec[i],vec[j])
 #     
 #     E,V = eig(M); V = V.T
 #     print("Finished diagonalization.")
@@ -191,7 +202,7 @@ def dec_to_index(num):
 #             print("Energy: " + str(E[i]))
 #             f = open(outnameroot+"_"+str(j),"w+")
 #             f.write(str(N)+"\n")
-#             coef = dot(V[i], vec)
+#             coef = np.dot(V[i], vec)
 #             for k in range(N):
 #                 f.write(basis[k])
 #                 f.write(str(coef[k])+"\n")
@@ -393,8 +404,8 @@ def truncate_from_vector(basisfile=None, coeffile=None, get_basis = True):
 		if not ((len([i for i in vec if i<n1])<=m1 and len([i for i in vec if i>Np-n1-1])<=m1) or ( len([i for i in vec if i<n2])<=m2 and len([i for i in vec if i>Np-n2-1])<=m2)):
 			b[j] = inf
 			
-	b = b/sum(b[b<inf]**2) # Normalize
-	tdim = sum(b<inf)
+	b = b/np.sum(b[b<inf]**2) # Normalize
+	tdim = np.sum(b<inf)
 	print("The truncated dimension is " + str(tdim))
 	if get_basis:
 		f.write(f"{tdim}\n")
@@ -422,14 +433,14 @@ def index_to_boson(basis,Np):
 def gram_schmidt(veclist):
 	orthovec = []
 	checkvec = array(veclist[0])
-	orthovec.append(checkvec/sqrt(sum(checkvec*checkvec)))
+	orthovec.append(checkvec/np.sqrt(np.sum(checkvec*checkvec)))
 	i=1
 	for vec in veclist[1:]:
-		coef = dot(orthovec, vec)
-		checkvec = vec-dot(coef, orthovec)
-		norm = sum(checkvec*checkvec) # assume real co-efficients
+		coef = np.dot(orthovec, vec)
+		checkvec = vec-np.dot(coef, orthovec)
+		norm = np.sum(checkvec*checkvec) # assume real co-efficients
 		if norm > 1e-10:
-			orthovec.append(checkvec/sqrt(norm))
+			orthovec.append(checkvec/np.sqrt(norm))
 		i+=1
 	
 	#if len(orthovec) == len(veclist):
@@ -475,8 +486,8 @@ def print_multi_vector(vec, name=None):
 	for i in range(N):
 		f = open(name+"_"+str(i), "w+")
 		for number in vec[i]:
-			f.write(f"{real(number)}\n")
-			if imag(number)>1e-8:
+			f.write(f"{np.real(number)}\n")
+			if np.imag(number)>1e-8:
 				print("Warning: non-real co-efficients")
 		f.close()
 	print("Files saved successfully.")
@@ -484,9 +495,9 @@ def print_multi_vector(vec, name=None):
 
 def sandwich(a,M,b, M_is_sparse=True):  # Calculate <a|M|b>
 	if M_is_sparse:
-		return dot(a,M.tocsc().dot(b))
+		return np.dot(a,M.tocsc().np.dot(b))
 	else:
-		return dot(a,dot(M,b))
+		return np.dot(a,np.dot(M,b))
 
 def read_profYang_files(name=None, N=None, startindex = None, basisformat = "index", sortbasis=False, noti=True):
 	if name==None:
@@ -529,9 +540,9 @@ def read_profYang_files(name=None, N=None, startindex = None, basisformat = "ind
 					a = f.readlines()
 					b = array([complex(float(a[2*i]),float(a[2*i+1])) for i in range(dim)])
 					if sortbasis:
-						vec[i-startindex] = imag(sort(b))
+						vec[i-startindex] = np.imag(sort(b))
 					else:
-						vec[i-startindex] = imag(b)
+						vec[i-startindex] = np.imag(b)
 			except FileNotFoundError:
 				missingno.append(i-startindex)
 				print("File number "+str(i)+" not found. Skipped.")
@@ -608,7 +619,7 @@ def extract_LEC_states(basisphi,basispsi,Np,LEC=[2,1,5,2],getfull = False, compl
 	M = array(M)
 	#print(shape(M))        
 	
-	M_sq = dot(M.T,M)
+	M_sq = np.dot(M.T,M)
 	#print(shape(M_sq))
 	
 	#E,V = eig(M_sq)
@@ -620,11 +631,11 @@ def extract_LEC_states(basisphi,basispsi,Np,LEC=[2,1,5,2],getfull = False, compl
 	V = null_space(M_sq)
 	nullveccoef = V.T
 	
-	nullvec = dot(nullveccoef, basispsi)
+	nullvec = np.dot(nullveccoef, basispsi)
 	
 	# normalize
 	#for i in range(len(nullveccoef)):
-		#nullvec[i] = nullvec[i]/sqrt(dot(nullvec[i],nullvec[i]))
+		#nullvec[i] = nullvec[i]/np.sqrt(np.dot(nullvec[i],nullvec[i]))
 	
 	if len(nullvec)>0:
 		#nullvecout = array(gram_schmidt(nullvec))
@@ -645,7 +656,7 @@ def check_overlap(vecfile1, vecfile2=None):
 	dim1 = int(a[0])
 	b = [complex(float(a[i]),float(a[i+1])) for i in arange(1,2*dim1,2)]
 	sort(b)
-	coef1 = imag(b)
+	coef1 = np.imag(b)
 	
 	f = open(vecfile2, 'r')
 	a = f.readlines()
@@ -653,8 +664,8 @@ def check_overlap(vecfile1, vecfile2=None):
 	if dim1==dim2:
 		b = [complex(float(a[i]),float(a[i+1])) for i in arange(1,2*dim1,2)]
 		sort(b)
-		coef2 = imag(b)
-		return (dot(coef1,coef2))**2
+		coef2 = np.imag(b)
+		return (np.dot(coef1,coef2))**2
 	else:
 		print("Dimension mismatch.")
 		return 0
@@ -671,7 +682,7 @@ def dec_to_bin_file(infile=None, outfile=None, Np=None):
 	
 	f = open(outfile, "w+")
 	f.write(f"{dim}\n")
-	toprint = "".join(f"{index_to_binary(Np-1-array(basis[j]), Np, True)}\n{real(vec[j]):.12f}\n" for j in range(dim))
+	toprint = "".join(f"{index_to_binary(Np-1-array(basis[j]), Np, True)}\n{np.real(vec[j]):.12f}\n" for j in range(dim))
 	f.write(toprint)
 	f.close()
 	return
@@ -745,7 +756,7 @@ def truncated_to_full_file(basislist, infile=None, outfile=None, invertbas = Fal
 	tdim = int(a[0])
 	basis = [int(x) for x in a[1::2]]
 	coef  = array([float(x) for x in a[2::2]])
-	coef  = coef/sqrt(dot(coef,coef))
+	coef  = coef/np.sqrt(np.dot(coef,coef))
 	dim = len(basislist)
 	if invertvec:
 		print("LOL I haven't written this portion of the code")
@@ -789,23 +800,23 @@ def findLZ(num,S,debug=False): # determine Lz sector of vector represented by de
 			ne+=1
 			b_ind.append(i)
 	if debug: print(f"{num}\tThe number of electrons is "+str(ne))
-	Lz = sum(b_ind)-ne*S
+	Lz = np.sum(b_ind)-ne*S
 	#print("The Lz sector is "+str(Lz))
 	return Lz
 
 def orthonormalize(vec, tol=1e-12):
-	M = dot(vec,vec.T)
+	M = np.dot(vec,vec.T)
 	E,V = eig(M)
-	print(E)
+	#print(E)
 	orthocompo = V[:,abs(E)>tol]
 	#f = open("test","w+")
 	#towrite = "".join(f"{x}\n" for x in sort(E))
 	#f.write(towrite)
 	#f.close()  
 	del V,E
-	vecout = dot(orthocompo.T,vec)
+	vecout = np.dot(orthocompo.T,vec)
 	for i in range(len(vecout)):
-		vecout[i] = vecout[i]/sqrt(dot(vecout[i],vecout[i]))
+		vecout[i] = vecout[i]/np.sqrt(np.dot(vecout[i],vecout[i]))
 	return vecout
 
 def orthonormalize_basis(inrootname=None, N=None,outrootname=None, savefile=True):
@@ -828,7 +839,7 @@ def orthonormalize_basis(inrootname=None, N=None,outrootname=None, savefile=True
 	
 	if savefile:
 		for i in range(ran):
-			vecprint = real(orthovec[i]/sqrt(dot(orthovec[i],orthovec[i])))
+			vecprint = np.real(orthovec[i]/np.sqrt(np.dot(orthovec[i],orthovec[i])))
 			towrite = "".join(f"{x:.16f}\n" for x in vecprint)
 			f = open(f"{outrootname}_{i}","w+")
 			f.write(towrite)
@@ -891,8 +902,8 @@ def remove_projection(vecfile1=None, vecfile2=None, outputname=None, getvec=Fals
 	dim1 = int(a[0])
 	b1 = [complex(float(a[i]),float(a[i+1])) for i in arange(1,2*dim1,2)]
 	sort(b1)
-	basis1 = real(b1)
-	coef1  = imag(b1)
+	basis1 = np.real(b1)
+	coef1  = np.imag(b1)
 	
 	f = open(vecfile2, "r")
 	a = f.readlines()
@@ -901,9 +912,9 @@ def remove_projection(vecfile1=None, vecfile2=None, outputname=None, getvec=Fals
 	if dim1 == dim2:
 		b2 = [complex(float(a[i]),float(a[i+1])) for i in arange(1,2*dim1,2)]
 		sort(b2)
-		coef2  = imag(b2)
-		coef_out = coef1 - coef2*dot(coef1,coef2)
-		coef_out = coef_out/sqrt(dot(coef_out,coef_out)) # Re-normalize
+		coef2  = np.imag(b2)
+		coef_out = coef1 - coef2*np.dot(coef1,coef2)
+		coef_out = coef_out/np.sqrt(np.dot(coef_out,coef_out)) # Re-normalize
 		f = open(outputname, "w+")
 		f.write(f"{dim1}\n")
 		towrite = "".join(f"{int(basis1[i])}\n{coef_out[i]:.16f}\n" for i in range(dim1))
@@ -934,8 +945,8 @@ def project_state(vecfile1=None, vecfile2=None, N=None, outputname=None,getvec=F
 	dim1 = int(a[0])
 	b1 = [complex(float(a[i]),float(a[i+1])) for i in arange(1,2*dim1,2)]
 	sort(b1)
-	basis1 = real(b1)
-	coef1  = imag(b1)
+	basis1 = np.real(b1)
+	coef1  = np.imag(b1)
 	
 	proj_vec = empty(dim1)
 	
@@ -949,10 +960,10 @@ def project_state(vecfile1=None, vecfile2=None, N=None, outputname=None,getvec=F
 			return
 		b1 = [complex(float(a[i]),float(a[i+1])) for i in arange(1,2*dim1,2)]
 		sort(b1)
-		coef2 = imag(b1)
-		proj_vec += coef2*dot(coef1,coef2)
+		coef2 = np.imag(b1)
+		proj_vec += coef2*np.dot(coef1,coef2)
 	
-	proj_vec = proj_vec/sqrt(dot(proj_vec,proj_vec)) # re-normalize
+	proj_vec = proj_vec/np.sqrt(np.dot(proj_vec,proj_vec)) # re-normalize
 	f = open(outputname, "w+")
 	f.write(f"{dim1}\n")
 	towrite = "".join(f"{int(basis1[i])}\n{proj_vec[i]:.16f}\n" for i in range(dim1))
@@ -975,14 +986,14 @@ def approximate_dimension(m,k,N):
 	s = 0
 	for p in range(pmax):
 		s+=(-1)**p * ncr(k,p) * ncr(k+N-m*p-1, N-m*p)
-	return s/prod(arange(k)+1)
+	return s/np.prod(arange(k)+1)
 
 def approximate_hw_dimension(m,k,N):
 	pmax = int(N/m)+1
 	s = 0
 	for p in range(pmax):
 		s+=(-1)**p * ncr(k,p) * ncr(k+N-m*p-1, N-m*p+1)
-	return s/prod(arange(k)+1)
+	return s/np.prod(arange(k)+1)
 
 def remove_projection_subspace(vecfile1=None, N=None, vecfile2=None, outputname=None):
 	if vecfile1 == None:
@@ -1000,8 +1011,8 @@ def remove_projection_subspace(vecfile1=None, N=None, vecfile2=None, outputname=
 	dim1 = int(a[0])
 	b1 = array([complex(float(a[i]),float(a[i+1])) for i in arange(1,2*dim1,2)])
 	sort(b1)
-	basis1 = real(b1)
-	coef1  = imag(b1)
+	basis1 = np.real(b1)
+	coef1  = np.imag(b1)
 	
 	vec = empty((N,dim1))
 	for i in range(N):
@@ -1017,16 +1028,16 @@ def remove_projection_subspace(vecfile1=None, N=None, vecfile2=None, outputname=
 				return
 		b2 = array([complex(float(a[i]),float(a[i+1])) for i in arange(1,2*dim1,2)])
 		sort(b2)
-		basis2 = real(b2)
+		basis2 = np.real(b2)
 		if (basis1 != basis2).all():
 			print("Basis mismatch at vector number " +str(i))
 			if getvec:
 				return list()
 			else:
 				return
-		coef2 = imag(b2)
-		v = coef2 - dot(coef1, coef2)*coef1
-		vec[i] = v/sqrt(dot(v,v))
+		coef2 = np.imag(b2)
+		v = coef2 - np.dot(coef1, coef2)*coef1
+		vec[i] = v/np.sqrt(np.dot(v,v))
 	
 	vecout = orthonormalize(vec)
 	if outputname=="x":
@@ -1050,7 +1061,7 @@ def print_vector(basis, coef=[], filename=None, basisformat = "dec", Np = None, 
 	if len(coef)==0:
 		coef = zeros(dim)
 	elif normalize:
-		norm = sqrt(dot(coef,coef))
+		norm = np.sqrt(np.dot(coef,coef))
 		#print(norm)
 		if norm < 1e-12:
 			print(f"***Warning: zero-norm vector. Norm = {norm}")
@@ -1064,15 +1075,15 @@ def print_vector(basis, coef=[], filename=None, basisformat = "dec", Np = None, 
 	dim_t = len(coef[coef>1e-12])
 	if basisformat == "dec":
 		if print_zero_coef:
-			towrite = f"{dim}\n"+"".join(f"{index_to_decimal(basis[i])}\n{real(coef[i]):.16f}\n" for i in range(dim))
+			towrite = f"{dim}\n"+"".join(f"{index_to_decimal(basis[i])}\n{np.real(coef[i]):.16f}\n" for i in range(dim))
 		else:
-			norm_t = sqrt(dot(coef[coef>1e-12],coef[coef>1e-12]))
+			norm_t = np.sqrt(np.dot(coef[coef>1e-12],coef[coef>1e-12]))
 			coef/=norm_t
-			towrite = f"{dim_t}\n"+"".join(f"{index_to_decimal(basis[i])}\n{real(coef[i]):.16f}\n" for i in range(dim) if real(coef[i])>1e-12)
+			towrite = f"{dim_t}\n"+"".join(f"{index_to_decimal(basis[i])}\n{np.real(coef[i]):.16f}\n" for i in range(dim) if np.real(coef[i])>1e-12)
 	elif basisformat == "bin":
 		if Np==None:
 			Np = int(input("How many orbital? "))
-		towrite = f"{dim}\n"+"".join(f"{index_to_binary(basis[i],Np,True)}\n{real(coef[i]):.16f}\n" for i in range(dim))
+		towrite = f"{dim}\n"+"".join(f"{index_to_binary(basis[i],Np,True)}\n{np.real(coef[i]):.16f}\n" for i in range(dim))
 	with open(filename,"w+") as f: 
 		f.write(towrite)
 	if noti:
@@ -1105,13 +1116,13 @@ def read_plot_data(filename=None):
 	k = array([float(x.split()[0]) for x in a])
 	ov1 = array([float(x.split()[1]) for x in a])
 	ov2 = array([float(x.split()[2]) for x in a])
-	return k, sqrt(ov1), sqrt(ov2),sqrt(ov1+ov2)
+	return k, np.sqrt(ov1), np.sqrt(ov2),np.sqrt(ov1+ov2)
 
 def is_admissible(vector, k,r):
 	# check if in vector, for every consecutive k orbitals, there are no more than r particles
 	N = len(vector)
 	for i in range(N-k+1):
-		if sum(vector[i:(i+k)])>r:
+		if np.sum(vector[i:(i+k)])>r:
 			return False
 	return True
 
@@ -1209,7 +1220,7 @@ def invert_vec(filename=None,Np=None):
 	basis = [int(x) for x in a[::2]]
 	basis_inv = []
 	for thing in basis:
-		basis_inv.append(sum([2**(Np-1-x) for x in range(len(bin(thing))-2) if bin(thing)[-x-1]=="1"]))
+		basis_inv.append(np.sum([2**(Np-1-x) for x in range(len(bin(thing))-2) if bin(thing)[-x-1]=="1"]))
 	coef  = a[1::2]
 	toprint = dim+"".join(f"{x}\n{y}" for [x,y] in zip_longest(basis_inv,coef))
 	with open(filename+"out","w+") as f:
@@ -1254,10 +1265,10 @@ def filter_zero(bnamein, vnamein, bnameout,vnameout):
 	return
 
 def disk_coef(M,m):
-	return np.sqrt(np.prod(np.arange(M)+1)*np.prod(np.arange(m)+1))
+	return np.np.sqrt(np.np.prod(np.arange(M)+1)*np.np.prod(np.arange(m)+1))
 
 def sphere_coef(s,m):
-	return np.prod(np.sqrt(np.arange(s-m)+1))/np.prod(np.sqrt(np.arange(s-m+1)+s+m+1))
+	return np.np.prod(np.np.sqrt(np.arange(s-m)+1))/np.np.prod(np.np.sqrt(np.arange(s-m+1)+s+m+1))
 
 def sphere_correction(s,x, north=True):
 	if north:
@@ -1267,7 +1278,7 @@ def sphere_correction(s,x, north=True):
 
 def add_zero(dim,basis, coef,Np=None, basis_format="index",quiet = True, north=True):
 	assert len(basis)==dim and len(coef)==dim
-	if dot(coef,coef)<1e-10:
+	if np.dot(coef,coef)<1e-10:
 		if not quiet:
 			print("Zero input vector -- Process terminated")
 		return 0, 0
@@ -1282,13 +1293,13 @@ def add_zero(dim,basis, coef,Np=None, basis_format="index",quiet = True, north=T
 		new_basis = [[x+1 for x in y] for y in basis]
 	else:
 		new_basis = [x for x in basis]           
-	#new_coef  = np.array([coef[i]*np.prod([sphere_coef(S,S-x) for x in basis[i]])/np.prod([sphere_coef(S+0.5,S+0.5-x) for x in new_basis[i]]) for i in range(dim)])
-	new_coef  = np.array([coef[i]*np.prod([sphere_correction(S,x,north) for x in basis[i]]) for i in range(dim)])
-	norm = np.sqrt(np.dot(new_coef,new_coef))
+	#new_coef  = np.array([coef[i]*np.np.prod([sphere_coef(S,S-x) for x in basis[i]])/np.np.prod([sphere_coef(S+0.5,S+0.5-x) for x in new_basis[i]]) for i in range(dim)])
+	new_coef  = np.array([coef[i]*np.np.prod([sphere_correction(S,x,north) for x in basis[i]]) for i in range(dim)])
+	norm = np.np.sqrt(np.np.dot(new_coef,new_coef))
 	if not quiet:
 		print(f"Check norm = {norm}")
 
-	new_coef /= np.sqrt(np.dot(new_coef,new_coef))
+	new_coef /= np.np.sqrt(np.np.dot(new_coef,new_coef))
 	
 	return new_basis, new_coef
 
@@ -1298,7 +1309,7 @@ def w2j(basis, coef, Np=None, basis_format="index",debug=False):
 	if basis_format=="dec":
 		basis = list(map(dec_to_index, basis))
 	S = (Np-1)/2
-	correction = np.array([np.prod([sphere_coef(S,x-S) for x in y]) for y in basis])
+	correction = np.array([np.np.prod([sphere_coef(S,x-S) for x in y]) for y in basis])
 	if debug: print(correction)
 	coef /= correction
 	return basis, coef
@@ -1309,8 +1320,8 @@ def j2w(basis, coef, Np=None, basis_format="index", debug=False):
 	if basis_format=="dec":
 		basis = list(map(dec_to_index, basis))
 	S = (Np-1)/2
-	correction = np.array([np.prod([sphere_coef(S,x-S) for x in y]) for y in basis])
+	correction = np.array([np.np.prod([sphere_coef(S,x-S) for x in y]) for y in basis])
 	if debug: print(correction)
 	coef *= correction
-	coef /= np.sqrt(np.dot(coef,coef))
+	coef /= np.np.sqrt(np.np.dot(coef,coef))
 	return basis, coef
