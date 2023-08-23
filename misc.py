@@ -1265,10 +1265,10 @@ def filter_zero(bnamein, vnamein, bnameout,vnameout):
 	return
 
 def disk_coef(M,m):
-	return np.np.sqrt(np.np.prod(np.arange(M)+1)*np.np.prod(np.arange(m)+1))
+	return np.sqrt(np.prod(np.arange(M)+1)*np.prod(np.arange(m)+1))
 
 def sphere_coef(s,m):
-	return np.np.prod(np.np.sqrt(np.arange(s-m)+1))/np.np.prod(np.np.sqrt(np.arange(s-m+1)+s+m+1))
+	return np.prod(np.sqrt(np.arange(s-m)+1))/np.prod(np.sqrt(np.arange(s-m+1)+s+m+1))
 
 def sphere_correction(s,x, north=True):
 	if north:
@@ -1293,13 +1293,13 @@ def add_zero(dim,basis, coef,Np=None, basis_format="index",quiet = True, north=T
 		new_basis = [[x+1 for x in y] for y in basis]
 	else:
 		new_basis = [x for x in basis]           
-	#new_coef  = np.array([coef[i]*np.np.prod([sphere_coef(S,S-x) for x in basis[i]])/np.np.prod([sphere_coef(S+0.5,S+0.5-x) for x in new_basis[i]]) for i in range(dim)])
-	new_coef  = np.array([coef[i]*np.np.prod([sphere_correction(S,x,north) for x in basis[i]]) for i in range(dim)])
-	norm = np.np.sqrt(np.np.dot(new_coef,new_coef))
+	#new_coef  = np.array([coef[i]*np.prod([sphere_coef(S,S-x) for x in basis[i]])/np.prod([sphere_coef(S+0.5,S+0.5-x) for x in new_basis[i]]) for i in range(dim)])
+	new_coef  = np.array([coef[i]*np.prod([sphere_correction(S,x,north) for x in basis[i]]) for i in range(dim)])
+	norm = np.sqrt(np.dot(new_coef,new_coef))
 	if not quiet:
 		print(f"Check norm = {norm}")
 
-	new_coef /= np.np.sqrt(np.np.dot(new_coef,new_coef))
+	new_coef /= np.sqrt(np.dot(new_coef,new_coef))
 	
 	return new_basis, new_coef
 
@@ -1309,7 +1309,7 @@ def w2j(basis, coef, Np=None, basis_format="index",debug=False):
 	if basis_format=="dec":
 		basis = list(map(dec_to_index, basis))
 	S = (Np-1)/2
-	correction = np.array([np.np.prod([sphere_coef(S,x-S) for x in y]) for y in basis])
+	correction = np.array([np.prod([sphere_coef(S,x-S) for x in y]) for y in basis])
 	if debug: print(correction)
 	coef /= correction
 	return basis, coef
@@ -1320,8 +1320,8 @@ def j2w(basis, coef, Np=None, basis_format="index", debug=False):
 	if basis_format=="dec":
 		basis = list(map(dec_to_index, basis))
 	S = (Np-1)/2
-	correction = np.array([np.np.prod([sphere_coef(S,x-S) for x in y]) for y in basis])
+	correction = np.array([np.prod([sphere_coef(S,x-S) for x in y]) for y in basis])
 	if debug: print(correction)
 	coef *= correction
-	coef /= np.np.sqrt(np.np.dot(coef,coef))
+	coef /= np.sqrt(np.dot(coef,coef))
 	return basis, coef
