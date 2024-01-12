@@ -226,6 +226,7 @@ class fqh_state:
 		coef = self.coef * multiplier 
 		return np.dot(np.conj(coef), coef)
 
+
 	def overlap(self, other):
 		if self.format == other.format:
 			basis, coef1, coef2 = misc.collate_vectors(self.basis, self.coef, other.basis, other.coef,get_array=True)
@@ -237,6 +238,12 @@ class fqh_state:
 		else: 
 			print("Basis format mismatch")
 			return 0
+
+	def perp(self, other):
+		ovl = self.overlap(other)
+		ret = self - ovl * other
+		ret.normalize()
+		return ret
 
 	def format_convert(self, No=None,invert=False):
 		if self.format=="decimal":
